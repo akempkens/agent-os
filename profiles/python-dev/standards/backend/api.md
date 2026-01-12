@@ -1,341 +1,454 @@
-## Python API Standards and Conventions
+## Python API Standards for LLM & ML Applications
+
+### FastAPI with OpenAPI 3.1+
+- **OpenAPI Version**: Use OpenAPI 3.1+ specification (latest)
+- **Auto-Documentation**: Leverage FastAPI's automatic schema generation
+- **Type Safety**: Use Pydantic v2 models for all request/response validation
+- **Async by Default**: Use async functions for all I/O-bound operations
+
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI(
+    title="LLM API",
+    description="API for LLM-powered applications",
+    version="1.0.0",
+    openapi_version="3.1.0",  # Explicitly use OpenAPI 3.1
+    docs_url="/docs",         # Swagger UI
+    redoc_url="/redoc"        # ReDoc alternative
+)
+
+class PromptRequest(BaseModel):
+    """Request schema for LLM prompts."""
+    prompt: str
+    model: str = "gpt-4"
+    max_tokens: int = 1000
+    temperature: float = 0.7
+
+class PromptResponse(BaseModel):
+    """Response schema for LLM completions."""
+    response: str
+    model: str
+    tokens_used: int
+```
 
 ### RESTful API Design
-- **Resource-Based URLs**: Use nouns for resources, not verbs: `/users`, `/posts`, not `/getUsers`
-- **HTTP Methods**: Use appropriate HTTP methods for operations:
+- **Resource-Based URLs**: Use nouns for resources: `/prompts`, `/embeddings`, `/documents`
+- **HTTP Methods**: Use appropriate methods:
   - GET: Retrieve resources
-  - POST: Create new resources
+  - POST: Create new resources or trigger operations (LLM completions)
   - PUT: Replace entire resource
   - PATCH: Partial update
   - DELETE: Remove resource
-- **Plural Nouns**: Use plural nouns for collections: `/users`, `/products`
-- **Nested Resources**: Limit nesting to 2-3 levels: `/users/123/posts/456`
+- **Versioning**: Version APIs from day one: `/api/v1/prompts`
 
-### FastAPI Best Practices
-- **Router Organization**: Organize endpoints using APIRouter for modularity
-- **Dependency Injection**: Use FastAPI's dependency injection for database sessions, authentication
-- **Automatic Documentation**: Leverage FastAPI's automatic OpenAPI/Swagger documentation
-- **Async by Default**: Use async functions for I/O-bound operations
+### MCP (Model Context Protocol) Server Support
+- **MCP Integration**: FastAPI endpoints can serve as MCP servers
+- **Standard Protocol**: Implement MCP protocol for AI tool integration
+- **Tool Registration**: Expose LLM tools through MCP endpoints
+- **Context Management**: Handle context windows and conversation state
 
 ```python
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/v1/users", tags=["users"])
+# MCP Server Router
+mcp_router = APIRouter(prefix="/mcp/v1", tags=["mcp"])
 
-@router.get("/{user_id}", response_model=UserResponse)
-async def get_user(
-    user_id: int,
-    session: AsyncSession = Depends(get_db_session)
-) -> UserResponse:
-    """Retrieve a user by ID."""
-    user = await user_service.get_by_id(session, user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+class MCPToolRequest(BaseModel):
+    """MCP tool invocation request."""
+    tool_name: str
+    parameters: dict[str, any]
+    context: dict[str, any] | None = None
+
+class MCPToolResponse(BaseModel):
+    """MCP tool invocation response."""
+    result: any
+    metadata: dict[str, any]
+
+@mcp_router.post("/tools/invoke", response_model=MCPToolResponse)
+async def invoke_mcp_tool(request: MCPToolRequest) -> MCPToolResponse:
+    """Invoke an MCP tool with context."""
+    # Route to appropriate tool handler
+    tool_handler = get_tool_handler(request.tool_name)
+    if not tool_handler:
+        raise HTTPException(status_code=404, detail=f"Tool {request.tool_name} not found")
+
+    result = await tool_handler.execute(
+        parameters=request.parameters,
+        context=request.context
+    )
+
+    return MCPToolResponse(
+        result=result,
+        metadata={"tool": request.tool_name, "execution_time": result.get("time")}
+    )
+
+@mcp_router.get("/tools", response_model=list[dict])
+async def list_mcp_tools():
+    """List all available MCP tools."""
+    return [
+        {
+            "name": "search_documents",
+            "description": "Search vector database for relevant documents",
+            "parameters": {"query": "string", "top_k": "integer"}
+        },
+        {
+            "name": "execute_query",
+            "description": "Execute SQL query on PostgreSQL",
+            "parameters": {"query": "string"}
+        }
+    ]
+```
+
+### Gradio Frontend Integration
+- **Gradio for Demos**: Use Gradio to create quick ML demo interfaces
+- **API Backend**: FastAPI serves as backend, Gradio provides frontend
+- **Separation**: Keep API logic separate from Gradio UI logic
+- **Mounting**: Optionally mount Gradio app within FastAPI
+
+```python
+import gradio as gr
+from fastapi import FastAPI
+
+# FastAPI backend
+app = FastAPI()
+
+@app.post("/api/v1/generate")
+async def generate_text(prompt: str, max_tokens: int = 100) -> dict:
+    """Generate text using LLM."""
+    # Your LLM logic here
+    response = await llm_client.generate(prompt=prompt, max_tokens=max_tokens)
+    return {"text": response.text, "tokens": response.tokens}
+
+# Gradio interface
+def gradio_generate(prompt: str, max_tokens: int) -> str:
+    """Gradio wrapper for text generation."""
+    import requests
+    response = requests.post(
+        "http://localhost:8000/api/v1/generate",
+        json={"prompt": prompt, "max_tokens": max_tokens}
+    )
+    return response.json()["text"]
+
+# Create Gradio interface
+demo = gr.Interface(
+    fn=gradio_generate,
+    inputs=[
+        gr.Textbox(label="Prompt", lines=5),
+        gr.Slider(minimum=10, maximum=500, value=100, label="Max Tokens")
+    ],
+    outputs=gr.Textbox(label="Generated Text", lines=10),
+    title="LLM Text Generator",
+    description="Generate text using our LLM API"
+)
+
+# Mount Gradio app in FastAPI (optional)
+app = gr.mount_gradio_app(app, demo, path="/ui")
+
+# Or run separately:
+# if __name__ == "__main__":
+#     demo.launch(server_port=7860)
+```
+
+### Database Integration (PostgreSQL Direct)
+- **No ORM**: Use direct SQL with asyncpg for database operations
+- **Connection Pooling**: Use asyncpg connection pools
+- **Dependency Injection**: Inject database connections via FastAPI dependencies
+- **Transactions**: Use asyncpg transactions for atomic operations
+
+```python
+import asyncpg
+from fastapi import Depends
+from typing import AsyncGenerator
+
+# Database connection pool (global)
+db_pool: asyncpg.Pool | None = None
+
+async def get_db_pool() -> asyncpg.Pool:
+    """Get database connection pool."""
+    global db_pool
+    if db_pool is None:
+        db_pool = await asyncpg.create_pool(
+            host="localhost",
+            database="mydb",
+            user="user",
+            password="password",
+            min_size=5,
+            max_size=20
         )
-    return user
+    return db_pool
+
+async def get_db_connection() -> AsyncGenerator[asyncpg.Connection, None]:
+    """Dependency to get database connection."""
+    pool = await get_db_pool()
+    async with pool.acquire() as connection:
+        yield connection
+
+@router.post("/documents", response_model=DocumentResponse)
+async def create_document(
+    doc: DocumentCreate,
+    conn: asyncpg.Connection = Depends(get_db_connection)
+) -> DocumentResponse:
+    """Create a new document."""
+    # Direct SQL execution
+    row = await conn.fetchrow(
+        """
+        INSERT INTO documents (title, content, embedding)
+        VALUES ($1, $2, $3)
+        RETURNING id, title, content, created_at
+        """,
+        doc.title,
+        doc.content,
+        doc.embedding
+    )
+
+    return DocumentResponse(
+        id=row["id"],
+        title=row["title"],
+        content=row["content"],
+        created_at=row["created_at"]
+    )
 ```
 
-### API Versioning
-- **URL Versioning**: Version APIs in URL path: `/api/v1/users`, `/api/v2/users`
-- **Version from Day One**: Include versioning from the beginning
-- **Semantic Versioning**: Use semantic versioning for API versions
-- **Deprecation Notices**: Announce deprecation well in advance with sunset dates
-
-### Request/Response Models
-- **Pydantic Models**: Use Pydantic models for all request and response validation
-- **Separate Schemas**: Use different models for create, update, and response operations
-- **response_model**: Always specify `response_model` to validate and filter responses
-- **Consistent Structure**: Maintain consistent JSON structure across endpoints
+### LLM API Patterns
+- **Streaming Responses**: Use Server-Sent Events (SSE) for streaming LLM outputs
+- **Token Counting**: Always count and return token usage
+- **Error Handling**: Handle LLM provider errors gracefully
+- **Rate Limiting**: Implement rate limiting for expensive LLM calls
 
 ```python
-from pydantic import BaseModel, EmailStr, Field
+from fastapi.responses import StreamingResponse
+from typing import AsyncIterator
+import asyncio
 
-class UserCreate(BaseModel):
-    """Schema for creating a new user."""
-    email: EmailStr
-    username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=12)
+async def stream_llm_response(prompt: str) -> AsyncIterator[str]:
+    """Stream LLM response token by token."""
+    async for chunk in llm_client.stream(prompt=prompt):
+        # Yield Server-Sent Event format
+        yield f"data: {chunk.text}\n\n"
+        await asyncio.sleep(0.01)  # Small delay to prevent overwhelming client
 
-class UserUpdate(BaseModel):
-    """Schema for updating user information."""
-    email: EmailStr | None = None
-    username: str | None = Field(None, min_length=3, max_length=50)
-    bio: str | None = Field(None, max_length=500)
-
-class UserResponse(BaseModel):
-    """Schema for user responses (excludes password)."""
-    id: int
-    email: EmailStr
-    username: str
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
+@router.post("/stream")
+async def stream_completion(request: PromptRequest):
+    """Stream LLM completion using SSE."""
+    return StreamingResponse(
+        stream_llm_response(request.prompt),
+        media_type="text/event-stream"
+    )
 ```
 
-### HTTP Status Codes
-- **Appropriate Status Codes**: Use correct HTTP status codes for responses:
-  - 200 OK: Successful GET, PUT, PATCH
-  - 201 Created: Successful POST
-  - 204 No Content: Successful DELETE
-  - 400 Bad Request: Invalid input
-  - 401 Unauthorized: Not authenticated
-  - 403 Forbidden: Authenticated but not authorized
-  - 404 Not Found: Resource doesn't exist
-  - 422 Unprocessable Entity: Validation error
-  - 500 Internal Server Error: Server error
-- **Consistent Usage**: Apply status codes consistently across all endpoints
-
-### Pagination
-- **Always Paginate Lists**: Paginate all list endpoints to prevent performance issues
-- **Cursor or Offset**: Use cursor-based pagination for large datasets, offset for smaller
-- **Pagination Metadata**: Include total count, page info in response
-- **Configurable Page Size**: Allow clients to specify page size with reasonable limits
+### Vector Search & Embeddings API
+- **Embedding Endpoints**: Expose endpoints for text embeddings
+- **Vector Search**: Implement semantic search over vector databases
+- **Batch Operations**: Support batch embedding and search
 
 ```python
 from pydantic import BaseModel
 
-class PaginatedResponse(BaseModel):
-    """Generic paginated response."""
-    items: list[UserResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+class EmbeddingRequest(BaseModel):
+    """Request for text embeddings."""
+    texts: list[str]
+    model: str = "text-embedding-ada-002"
 
-@router.get("/", response_model=PaginatedResponse)
-async def list_users(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-    session: AsyncSession = Depends(get_db_session)
-) -> PaginatedResponse:
-    """List users with pagination."""
-    offset = (page - 1) * page_size
-    users = await user_service.list_users(session, offset=offset, limit=page_size)
-    total = await user_service.count_users(session)
+class EmbeddingResponse(BaseModel):
+    """Response with embeddings."""
+    embeddings: list[list[float]]
+    model: str
+    tokens_used: int
 
-    return PaginatedResponse(
-        items=users,
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=(total + page_size - 1) // page_size
+@router.post("/embeddings", response_model=EmbeddingResponse)
+async def create_embeddings(
+    request: EmbeddingRequest
+) -> EmbeddingResponse:
+    """Generate embeddings for texts."""
+    embeddings = await embedding_service.embed_texts(
+        texts=request.texts,
+        model=request.model
+    )
+
+    return EmbeddingResponse(
+        embeddings=embeddings.vectors,
+        model=request.model,
+        tokens_used=embeddings.tokens
+    )
+
+class SearchRequest(BaseModel):
+    """Vector search request."""
+    query: str
+    top_k: int = 5
+    filters: dict[str, any] | None = None
+
+class SearchResponse(BaseModel):
+    """Vector search results."""
+    results: list[dict]
+    query_embedding: list[float] | None = None
+
+@router.post("/search", response_model=SearchResponse)
+async def search_documents(
+    request: SearchRequest,
+    conn: asyncpg.Connection = Depends(get_db_connection)
+) -> SearchResponse:
+    """Semantic search using vector embeddings."""
+    # Generate query embedding
+    query_embedding = await embedding_service.embed_text(request.query)
+
+    # Vector search using pgvector or external vector DB
+    results = await conn.fetch(
+        """
+        SELECT id, title, content,
+               embedding <-> $1::vector AS distance
+        FROM documents
+        ORDER BY distance
+        LIMIT $2
+        """,
+        query_embedding,
+        request.top_k
+    )
+
+    return SearchResponse(
+        results=[dict(row) for row in results],
+        query_embedding=query_embedding
     )
 ```
 
-### Filtering and Sorting
-- **Query Parameters**: Use query parameters for filtering: `/users?status=active&role=admin`
-- **Consistent Naming**: Use consistent parameter names across endpoints
-- **Sort Parameter**: Support sorting with `sort` parameter: `?sort=-created_at` (minus for descending)
-- **Validate Filters**: Validate filter values to prevent injection attacks
+### Authentication & Security
+- **API Keys**: Use API key authentication for LLM endpoints
+- **Rate Limiting**: Implement per-user rate limits
+- **CORS**: Configure CORS for web frontends (Gradio)
+- **Input Validation**: Validate and sanitize all inputs
 
 ```python
-from enum import Enum
+from fastapi import Header, HTTPException, Security
+from fastapi.security import APIKeyHeader
 
-class SortOrder(str, Enum):
-    ASC = "asc"
-    DESC = "desc"
+api_key_header = APIKeyHeader(name="X-API-Key")
 
-@router.get("/")
-async def list_users(
-    status: UserStatus | None = None,
-    role: UserRole | None = None,
-    sort_by: str = Query("created_at", regex="^(created_at|username|email)$"),
-    sort_order: SortOrder = SortOrder.DESC,
-    session: AsyncSession = Depends(get_db_session)
+async def verify_api_key(api_key: str = Security(api_key_header)):
+    """Verify API key."""
+    # Check against database or environment variable
+    valid_key = await get_valid_api_key(api_key)
+    if not valid_key:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    return valid_key
+
+@router.post("/protected-endpoint")
+async def protected_endpoint(
+    request: PromptRequest,
+    api_key: str = Depends(verify_api_key)
 ):
-    """List users with filtering and sorting."""
-    filters = {}
-    if status:
-        filters["status"] = status
-    if role:
-        filters["role"] = role
-
-    users = await user_service.list_users(
-        session,
-        filters=filters,
-        sort_by=sort_by,
-        sort_order=sort_order
-    )
-    return users
+    """Protected endpoint requiring API key."""
+    # Your logic here
+    pass
 ```
 
-### Error Handling and Responses
-- **Consistent Error Format**: Use consistent error response structure
-- **Meaningful Messages**: Provide clear, actionable error messages
-- **Error Codes**: Include machine-readable error codes
-- **Don't Expose Internals**: Never expose stack traces, SQL, or internal details
+### Error Handling
+- **Consistent Format**: Use consistent error response format
+- **LLM Errors**: Handle provider-specific errors (rate limits, token limits)
+- **Graceful Degradation**: Fallback to alternative models when primary fails
 
 ```python
-from fastapi import FastAPI, Request
+from fastapi import Request
 from fastapi.responses import JSONResponse
 
-class APIError(BaseModel):
-    """Standard API error response."""
-    error: str
-    message: str
-    status_code: int
-    details: dict[str, any] | None = None
+class LLMError(Exception):
+    """Base exception for LLM errors."""
+    def __init__(self, message: str, status_code: int = 500):
+        self.message = message
+        self.status_code = status_code
 
-@app.exception_handler(ValidationError)
-async def validation_exception_handler(request: Request, exc: ValidationError):
+@app.exception_handler(LLMError)
+async def llm_error_handler(request: Request, exc: LLMError):
+    """Handle LLM-specific errors."""
     return JSONResponse(
-        status_code=422,
+        status_code=exc.status_code,
         content={
-            "error": "VALIDATION_ERROR",
-            "message": "Input validation failed",
-            "status_code": 422,
-            "details": exc.errors()
+            "error": "LLM_ERROR",
+            "message": exc.message,
+            "type": "llm_error"
         }
     )
 ```
 
-### Authentication & Authorization
-- **JWT Tokens**: Use JWT tokens for stateless authentication
-- **OAuth2**: Implement OAuth2 with FastAPI's security utilities
-- **Dependency Injection**: Use dependencies for authentication checks
-- **Role-Based Access Control**: Implement RBAC for authorization
-
-```python
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
-security = HTTPBearer()
-
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    session: AsyncSession = Depends(get_db_session)
-) -> User:
-    """Verify JWT token and return current user."""
-    token = credentials.credentials
-    payload = verify_jwt_token(token)
-    if not payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials"
-        )
-
-    user = await user_service.get_by_id(session, payload["user_id"])
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found"
-        )
-    return user
-
-@router.get("/me", response_model=UserResponse)
-async def get_current_user_profile(
-    current_user: User = Depends(get_current_user)
-) -> UserResponse:
-    """Get current authenticated user's profile."""
-    return current_user
-```
-
-### Rate Limiting
-- **Implement Rate Limits**: Protect APIs with rate limiting
-- **Rate Limit Headers**: Include rate limit info in response headers
-- **Per-User Limits**: Apply different limits based on user tier
-- **Library**: Use libraries like slowapi for rate limiting
-
-```python
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-@router.get("/search")
-@limiter.limit("10/minute")
-async def search_users(request: Request, query: str):
-    """Search users (rate limited to 10 requests per minute)."""
-    pass
-```
-
-### CORS Configuration
-- **Explicit Origins**: Never use `allow_origins=["*"]` in production
-- **Credentials**: Set `allow_credentials=True` only if needed
-- **Methods and Headers**: Explicitly allow only required methods and headers
-
-```python
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://yourdomain.com"],  # Explicit origins
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["*"],
-)
-```
-
-### API Documentation
-- **OpenAPI/Swagger**: FastAPI generates this automatically
-- **Endpoint Descriptions**: Add descriptions to all endpoints
-- **Tag Organization**: Group related endpoints with tags
-- **Examples**: Provide request/response examples in schemas
-
-```python
-@router.post(
-    "/",
-    response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create a new user",
-    description="Register a new user account with email and password",
-    responses={
-        201: {"description": "User created successfully"},
-        400: {"description": "Invalid input"},
-        409: {"description": "Email already registered"}
-    }
-)
-async def create_user(
-    user_data: UserCreate,
-    session: AsyncSession = Depends(get_db_session)
-) -> UserResponse:
-    """Create a new user account."""
-    pass
-```
-
 ### Background Tasks
-- **FastAPI BackgroundTasks**: Use for simple tasks that don't need reliability
-- **Celery for Complex**: Use Celery for complex, distributed background jobs
-- **Don't Block Requests**: Never block request handlers with slow operations
-- **Task Status**: Provide endpoints to check background task status
+- **Async Tasks**: Use FastAPI BackgroundTasks for simple async operations
+- **Long Operations**: Use Celery or modal for long-running LLM tasks
+- **Status Tracking**: Provide endpoints to check task status
 
 ```python
 from fastapi import BackgroundTasks
 
-def send_welcome_email(email: str):
-    """Send welcome email to new user."""
-    # Email sending logic
+async def process_document_embeddings(document_id: int):
+    """Background task to generate embeddings."""
+    # Fetch document, generate embeddings, store
     pass
 
-@router.post("/", status_code=201)
-async def create_user(
-    user_data: UserCreate,
-    background_tasks: BackgroundTasks,
-    session: AsyncSession = Depends(get_db_session)
+@router.post("/documents/{doc_id}/embed")
+async def trigger_embedding(
+    doc_id: int,
+    background_tasks: BackgroundTasks
 ):
-    """Create user and send welcome email in background."""
-    user = await user_service.create(session, user_data)
-
-    # Send email in background
-    background_tasks.add_task(send_welcome_email, user.email)
-
-    return user
+    """Trigger embedding generation in background."""
+    background_tasks.add_task(process_document_embeddings, doc_id)
+    return {"message": "Embedding generation started", "document_id": doc_id}
 ```
 
-### Request Validation
-- **Automatic Validation**: FastAPI validates requests automatically with Pydantic
-- **Custom Validators**: Add custom validation for complex business rules
-- **Query Parameters**: Validate query params with Field constraints
-- **Path Parameters**: Validate path params with constraints
+### OpenAPI 3.1 Documentation
+- **Rich Descriptions**: Add detailed descriptions to all endpoints
+- **Examples**: Include request/response examples in Pydantic models
+- **Tags**: Organize endpoints with tags for better documentation
+- **Metadata**: Add contact info, license, and version info
 
-### API Testing
-- **Test All Endpoints**: Write tests for all API endpoints
-- **Use TestClient**: Use FastAPI's TestClient for synchronous tests
-- **httpx for Async**: Use httpx.AsyncClient for async endpoint tests
-- **Test Error Cases**: Test validation errors, authentication, and edge cases
+```python
+app = FastAPI(
+    title="LLM & Vector Search API",
+    description="""
+    API for LLM-powered applications with vector search capabilities.
+
+    ## Features
+    * Text generation with multiple LLM providers
+    * Vector embeddings and semantic search
+    * Document processing and storage
+    * MCP server protocol support
+    """,
+    version="1.0.0",
+    openapi_version="3.1.0",
+    contact={
+        "name": "API Support",
+        "email": "support@example.com"
+    },
+    license_info={
+        "name": "MIT"
+    }
+)
+```
+
+### Container Deployment
+- **Health Checks**: Implement health check endpoints for container orchestration
+- **Graceful Shutdown**: Handle SIGTERM for graceful container shutdown
+- **Environment Config**: Use environment variables for all configuration
+
+```python
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for container orchestration."""
+    # Check database connection, LLM provider, etc.
+    db_healthy = await check_database_health()
+    llm_healthy = await check_llm_provider()
+
+    if not (db_healthy and llm_healthy):
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unhealthy", "database": db_healthy, "llm": llm_healthy}
+        )
+
+    return {"status": "healthy"}
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown."""
+    global db_pool
+    if db_pool:
+        await db_pool.close()
+```

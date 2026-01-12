@@ -1,25 +1,51 @@
-# Python Development Profile
+# Python Development Profile for LLM & ML Applications
 
-A comprehensive Agent OS profile for modern Python development with best practices, modern tooling, and industry standards.
+A comprehensive Agent OS profile for modern Python development focused on LLM applications, machine learning, Jupyter notebooks, and graph databases.
 
 ## Overview
 
-This profile provides coding standards, conventions, and best practices for Python development using a modern tech stack. It's designed to guide AI agents and development teams in building high-quality Python applications.
+This profile provides coding standards, conventions, and best practices for Python development using a modern LLM/ML tech stack. It's designed to guide AI agents and development teams in building production-quality LLM applications, working with vector databases, and deploying in container environments.
 
 ## Tech Stack
 
 This profile is optimized for:
 
-- **Python 3.11+** - Modern Python with latest features
-- **Poetry** - Modern dependency management
-- **FastAPI** - Modern async web framework
-- **SQLAlchemy 2.0+** - Async ORM with type hints
-- **Pydantic v2** - Data validation and settings
-- **Black** - Opinionated code formatting
-- **Ruff** - Fast, comprehensive linting
+### Core
+- **Python 3.12+** - Latest Python with modern type hints and performance
+- **Poetry** - Modern dependency management with lock files
+- **Docker** - Container-first deployment strategy
+- **PostgreSQL 16+** - Direct SQL with asyncpg (no ORM)
+
+### LLM & AI
+- **OpenAI SDK** - GPT-4, GPT-3.5, embeddings
+- **Anthropic SDK** - Claude models
+- **Google Generative AI** - Gemini models
+- **LangChain** - LLM orchestration framework
+- **Ollama** - Local LLM deployment
+
+### Machine Learning
+- **PyTorch** - Primary ML framework
+- **HuggingFace Transformers** - Pre-trained models
+- **Sentence Transformers** - Local embeddings
+- **Accelerate** - Distributed training and inference
+
+### Data & Databases
+- **PostgreSQL + pgvector** - Vector similarity search
+- **ChromaDB** - Vector database for embeddings
+- **Neo4j** - Graph database for relationships
+- **Redis** - Caching and message queuing
+
+### Development
+- **JupyterLab** - Interactive development
+- **Gradio** - ML demo interfaces
+- **FastAPI** - Async API framework with OpenAPI 3.1
+- **MCP Server Support** - Model Context Protocol integration
+
+### Code Quality
+- **Black** - Code formatting
+- **Ruff** - Fast linting
 - **mypy** - Static type checking
 - **pytest** - Testing framework
-- **PostgreSQL** - Primary database
 
 ## Profile Structure
 
@@ -28,143 +54,238 @@ python-dev/
 ├── README.md                           # This file
 └── standards/
     ├── global/                         # Global standards for all Python projects
-    │   ├── tech-stack.md              # Complete tech stack definition
+    │   ├── tech-stack.md              # Complete LLM/ML tech stack
     │   ├── coding-style.md            # PEP 8, Black, Ruff, type hints
     │   ├── conventions.md             # Python development conventions
     │   ├── error-handling.md          # Exception handling, logging
     │   ├── validation.md              # Pydantic validation patterns
     │   └── commenting.md              # Docstrings, type hints as documentation
     ├── backend/                        # Backend-specific standards
-    │   ├── api.md                     # FastAPI REST API best practices
-    │   ├── models.md                  # SQLAlchemy models, relationships
-    │   └── queries.md                 # Database queries, N+1 prevention
+    │   ├── api.md                     # FastAPI + MCP + Gradio integration
+    │   ├── database.md                # PostgreSQL direct SQL patterns
+    │   ├── queries.md                 # Direct SQL queries with asyncpg
+    │   └── graph-database.md          # Neo4j graph database patterns
+    ├── ml/                             # Machine Learning standards
+    │   ├── notebooks.md               # Jupyter notebook best practices
+    │   └── llm-integration.md         # LLM provider integration patterns
+    ├── deployment/                     # Deployment standards
+    │   └── docker.md                  # Docker & container best practices
     └── testing/                        # Testing standards
         └── test-writing.md            # pytest, async testing, coverage
 ```
 
 ## Key Standards
 
-### Coding Style
-- **PEP 8 Compliance**: Follow Python's official style guide
-- **Automatic Formatting**: Black for consistent code style (88-100 chars)
-- **Fast Linting**: Ruff for comprehensive, fast linting
-- **Type Hints**: Full type hint coverage with mypy checking
-- **Modern Syntax**: Python 3.10+ type syntax (`list[str]`, `dict[str, int]`)
+### LLM Integration
+- **Multi-Provider Support**: OpenAI, Anthropic, Google, Ollama
+- **Async Operations**: All LLM calls use async/await
+- **Error Handling**: Retry logic, rate limit handling, fallbacks
+- **Token Management**: Track and optimize token usage
+- **Streaming**: Server-Sent Events for streaming responses
 
 ### API Development
-- **FastAPI First**: Async-first API development with automatic OpenAPI docs
-- **Pydantic Validation**: Type-safe request/response validation
-- **RESTful Design**: Resource-based URLs with appropriate HTTP methods
-- **API Versioning**: Version APIs from day one (`/api/v1/`)
+- **FastAPI + OpenAPI 3.1**: Modern async API with latest OpenAPI spec
+- **MCP Server Support**: Implement Model Context Protocol servers
+- **Gradio Integration**: Quick ML demo interfaces
+- **Vector Search API**: Endpoints for embeddings and semantic search
+- **Direct PostgreSQL**: Use asyncpg for direct SQL (no ORM)
+
+### Notebook Development
+- **JupyterLab**: Interactive development environment
+- **Google Colab Compatible**: Notebooks work in Colab
+- **Progress Tracking**: Use tqdm for long-running operations
+- **Visualization**: Matplotlib, Plotly for rich visualizations
+- **Version Control**: Clear outputs before committing
 
 ### Database
-- **SQLAlchemy 2.0+**: Modern async ORM with declarative models
-- **Type-Safe Models**: Full type hints on all model attributes
-- **N+1 Prevention**: Proper eager loading with selectinload/joinedload
-- **Async Operations**: All database operations use async/await
+- **PostgreSQL + pgvector**: Vector similarity search with SQL
+- **Direct SQL**: Write clear SQL queries with asyncpg
+- **No ORM**: Direct database access for performance and control
+- **Graph Database**: Neo4j for relationship-heavy data
+- **Vector Databases**: ChromaDB for embeddings
 
-### Testing
-- **pytest Framework**: Modern testing with fixtures and parametrization
-- **Async Testing**: Full async/await support with pytest-asyncio
-- **Test Coverage**: Aim for >80% coverage on core functionality
-- **Fast Tests**: Keep unit tests fast; mock external dependencies
-
-### Code Quality
-- **Poetry**: Modern dependency management with lock files
-- **Pre-commit Hooks**: Automated quality checks before commit
-- **Type Checking**: Static type checking with mypy or pyright
-- **Security**: Input validation, parameterized queries, no secrets in code
+### Container Deployment
+- **Docker-First**: All services containerized
+- **Multi-Stage Builds**: Optimized container images
+- **Health Checks**: Proper health/readiness/liveness probes
+- **Docker Compose**: Local multi-service development
+- **Kubernetes Ready**: Production-ready deployments
 
 ## Using This Profile
 
-### For New Projects
+### For New LLM Projects
 
-1. Set up Poetry for dependency management:
+1. Set up Poetry with LLM dependencies:
    ```bash
    poetry init
-   poetry add fastapi uvicorn sqlalchemy asyncpg pydantic
-   poetry add --group dev black ruff mypy pytest pytest-asyncio
+   poetry add fastapi uvicorn openai anthropic langchain
+   poetry add chromadb asyncpg pydantic python-dotenv
+   poetry add --group dev black ruff mypy pytest jupyterlab
    ```
 
-2. Configure tools in `pyproject.toml`:
-   ```toml
-   [tool.black]
-   line-length = 88
-   target-version = ['py311']
-
-   [tool.ruff]
-   line-length = 88
-   target-version = "py311"
-
-   [tool.mypy]
-   python_version = "3.11"
-   strict = true
+2. Create `.env` file for API keys:
+   ```env
+   OPENAI_API_KEY=your_key
+   ANTHROPIC_API_KEY=your_key
+   DATABASE_URL=postgresql://user:pass@localhost/db
    ```
 
-3. Set up pre-commit hooks:
+3. Set up Docker development environment:
    ```bash
-   poetry add --group dev pre-commit
-   pre-commit install
+   docker-compose up -d
    ```
 
 4. Follow the standards in this profile for all code
 
-### For Existing Projects
+### For Notebook Development
 
-1. Review the standards in each section
-2. Gradually adopt standards that fit your project
-3. Update tooling configuration to match recommendations
-4. Use standards as reference during code reviews
+1. Install Jupyter dependencies:
+   ```bash
+   poetry add jupyterlab ipywidgets gradio
+   poetry add numpy pandas matplotlib plotly
+   ```
+
+2. Launch JupyterLab:
+   ```bash
+   poetry run jupyter lab
+   ```
+
+3. Follow notebook best practices from `ml/notebooks.md`
 
 ## Standards Overview
 
 ### Global Standards
-- **tech-stack.md**: Complete modern Python tech stack with alternatives
+- **tech-stack.md**: Complete LLM/ML tech stack with all libraries
 - **coding-style.md**: PEP 8, Black, type hints, naming conventions
-- **conventions.md**: Project structure, dependency management, configuration
+- **conventions.md**: Project structure, containers, Jupyter compatibility
 - **error-handling.md**: Exception handling, logging, error responses
-- **validation.md**: Pydantic validation patterns and best practices
-- **commenting.md**: Docstrings, type hints, when to comment
+- **validation.md**: Pydantic validation patterns for LLM inputs/outputs
+- **commenting.md**: Docstrings, type hints, documentation
 
 ### Backend Standards
-- **api.md**: FastAPI REST API design, authentication, rate limiting
-- **models.md**: SQLAlchemy models, relationships, indexes
-- **queries.md**: Query patterns, N+1 prevention, performance
+- **api.md**: FastAPI + OpenAPI 3.1, MCP servers, Gradio integration, vector search
+- **database.md**: PostgreSQL direct SQL patterns with asyncpg
+- **queries.md**: Direct SQL queries, vector search, JSONB operations
+- **graph-database.md**: Neo4j patterns for graph data
+
+### ML Standards
+- **notebooks.md**: Jupyter best practices, Colab compatibility, visualization
+- **llm-integration.md**: OpenAI, Anthropic, LangChain, RAG patterns
+
+### Deployment Standards
+- **docker.md**: Container best practices, Docker Compose, Kubernetes, GPU support
 
 ### Testing Standards
-- **test-writing.md**: pytest patterns, fixtures, mocking, coverage
+- **test-writing.md**: pytest patterns, async testing, mocking, coverage
 
 ## Philosophy
 
 This profile emphasizes:
 
-1. **Type Safety**: Comprehensive type hints for better tooling and fewer bugs
-2. **Modern Tools**: Latest Python features and best-in-class tooling
-3. **Async First**: Async/await for better performance in I/O-bound applications
-4. **Simplicity**: Simple, readable code over clever abstractions
-5. **Automation**: Automated formatting, linting, and testing
-6. **Standards**: Consistent coding standards across the project
+1. **LLM-First**: Designed for building LLM-powered applications
+2. **Type Safety**: Comprehensive type hints for better tooling
+3. **Async Operations**: Async/await for LLM calls and I/O operations
+4. **Container-Native**: Docker-first development and deployment
+5. **Direct SQL**: No ORM overhead for maximum performance
+6. **Notebook-Friendly**: Works seamlessly in Jupyter and Google Colab
+7. **Production-Ready**: Standards for deploying LLM apps at scale
 
 ## When to Use This Profile
 
 This profile is ideal for:
 
-- ✅ Web APIs and microservices
-- ✅ Async I/O-bound applications
-- ✅ Projects requiring type safety
-- ✅ Modern Python 3.11+ projects
-- ✅ Teams wanting consistent standards
-- ✅ Projects using FastAPI, SQLAlchemy, or Pydantic
+- ✅ LLM-powered applications (chatbots, agents, RAG systems)
+- ✅ Machine learning model deployment
+- ✅ Jupyter notebook development
+- ✅ Vector search and semantic similarity
+- ✅ Graph database applications
+- ✅ Container-based deployments
+- ✅ Projects using multiple LLM providers
+- ✅ Google Colab development
+- ✅ FastAPI + MCP server development
 
 Consider alternatives for:
-- ❌ Data science / ML projects (use specialized profiles)
-- ❌ Legacy Python 2 or older Python 3 projects
+- ❌ Traditional CRUD web applications (use general Python profile)
+- ❌ Django projects (Django has its own conventions)
+- ❌ Legacy Python 2 projects
 - ❌ Simple scripts (may be overkill)
-- ❌ Projects with different framework requirements (Django-specific, etc.)
+
+## Example Project Structure
+
+```
+my-llm-project/
+├── .env                                # Environment variables (not in git)
+├── .gitignore                          # Python + Jupyter gitignore
+├── docker-compose.yml                  # Local development services
+├── Dockerfile                          # Production container
+├── pyproject.toml                      # Poetry dependencies
+├── poetry.lock                         # Locked dependencies
+├── README.md                           # Project documentation
+├── app/                                # Application code
+│   ├── __init__.py
+│   ├── main.py                        # FastAPI app
+│   ├── api/                           # API routes
+│   │   ├── llm.py                     # LLM endpoints
+│   │   ├── embeddings.py              # Embedding endpoints
+│   │   └── mcp.py                     # MCP server endpoints
+│   ├── services/                      # Business logic
+│   │   ├── llm_client.py              # LLM client
+│   │   ├── embeddings.py              # Embedding service
+│   │   └── vector_search.py           # Vector search
+│   ├── db/                            # Database
+│   │   ├── postgres.py                # PostgreSQL connection
+│   │   └── neo4j.py                   # Neo4j connection
+│   └── models/                        # Pydantic models
+│       └── schemas.py                 # Request/response schemas
+├── notebooks/                          # Jupyter notebooks
+│   ├── exploration.ipynb              # Data exploration
+│   └── experiments.ipynb              # LLM experiments
+├── tests/                             # Tests
+│   ├── test_api.py
+│   ├── test_llm.py
+│   └── test_embeddings.py
+└── data/                              # Data files (gitignored)
+```
+
+## Quick Start
+
+1. **Clone and setup**:
+   ```bash
+   poetry install
+   cp .env.example .env  # Add your API keys
+   ```
+
+2. **Start services**:
+   ```bash
+   docker-compose up -d  # Start PostgreSQL, Redis, Neo4j, ChromaDB
+   ```
+
+3. **Run development server**:
+   ```bash
+   poetry run uvicorn app.main:app --reload
+   ```
+
+4. **Open Jupyter**:
+   ```bash
+   poetry run jupyter lab
+   ```
+
+5. **View API docs**:
+   - Swagger UI: http://localhost:8000/docs
+   - ReDoc: http://localhost:8000/redoc
+
+## Resources
+
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [LangChain Documentation](https://python.langchain.com/)
+- [OpenAI API Reference](https://platform.openai.com/docs/api-reference)
+- [Anthropic Claude Documentation](https://docs.anthropic.com/)
+- [ChromaDB Documentation](https://docs.trychroma.com/)
+- [Neo4j Python Driver](https://neo4j.com/docs/python-manual/current/)
 
 ## Contributing
 
-This profile is designed to be a living document. As Python and its ecosystem evolve, these standards should be updated to reflect current best practices.
+This profile is designed to be a living document. As LLM technology and best practices evolve, these standards should be updated accordingly.
 
 ## License
 
