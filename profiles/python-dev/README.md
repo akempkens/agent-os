@@ -2,6 +2,12 @@
 
 A comprehensive Agent OS profile for modern Python development focused on LLM applications, machine learning, Jupyter notebooks, and graph databases.
 
+## 🚀 Quick Start for AI Agents
+
+**Start here**: [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) - Compact 350-line guide with all essential standards and code patterns.
+
+**Detailed examples**: See individual standard files in `standards/` directory only when needed.
+
 ## Overview
 
 This profile provides coding standards, conventions, and best practices for Python development using a modern LLM/ML tech stack. It's designed to guide AI agents and development teams in building production-quality LLM applications, working with vector databases, and deploying in container environments.
@@ -52,6 +58,7 @@ This profile is optimized for:
 ```
 python-dev/
 ├── README.md                           # This file
+├── QUICK_REFERENCE.md                  # ⭐ Compact guide for AI agents (start here!)
 └── standards/
     ├── global/                         # Global standards for all Python projects
     │   ├── tech-stack.md              # Complete LLM/ML tech stack
