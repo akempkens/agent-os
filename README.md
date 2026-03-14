@@ -1,18 +1,17 @@
-<img width="1280" height="640" alt="agent-os-og" src="https://github.com/user-attachments/assets/f70671a2-66e8-4c80-8998-d4318af55d10" />
+<img width="1200" height="675" alt="Agent OS" src="https://github.com/user-attachments/assets/97ad4491-d199-4b9b-9482-ae710291dfb4" />
 
-## Your system for spec-driven agentic development.
+## Agents that build the way you would
 
-[Agent OS](https://buildermethods.com/agent-os) transforms AI coding agents from confused interns into productive developers. With structured workflows that capture your standards, your stack, and the unique details of your codebase, Agent OS gives your agents the specs they need to ship quality code on the first try—not the fifth.
+[Agent OS](https://buildermethods.com/agent-os) helps you shape better specs, keeps agents aligned in a lightweight system that fits how you already build.
 
-Use it with:
+Works alongside Claude Code, Cursor, Antigravity, and other AI tools. Any language, any framework.
 
-✅ Claude Code, Cursor, or any other AI coding tool.
+**Core capabilities:**
 
-✅ New products or established codebases.
-
-✅ Big features, small fixes, or anything in between.
-
-✅ Any language or framework.
+- **Discover Standards** — Extract patterns and conventions from your codebase into documented standards
+- **Deploy Standards** — Intelligently inject relevant standards based on what you're building
+- **Shape Spec** — Create better plans that lead to better builds
+- **Index Standards** — Keep your standards organized and discoverable
 
 ---
 
@@ -39,3 +38,4 @@ Get Brian's free resources on building with AI:
 - [YouTube](https://youtube.com/@briancasel)
 
 Join [Builder Methods Pro](https://buildermethods.com/pro) for official support and connect with our community of AI-first builders:
+
